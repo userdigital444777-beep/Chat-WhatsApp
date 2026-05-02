@@ -1,0 +1,365 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script disable-devtool-auto src="https://cdn.jsdelivr.net/npm/disable-devtool@latest"></script>
+  <title>Audio</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap');
+    
+    /* Definições comuns de estilo */
+    body {
+      height: 100vh;
+      overflow: hidden;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #1c2c34;
+      font-family: 'Open Sans', sans-serif;
+    }
+
+    .audio-container {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+      max-width: 600px;
+      padding: 10px;
+      box-sizing: border-box;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      position: relative;
+      height: 60px;
+      transition: background-color 0.3s ease;
+      background-color: #1c2c34; /* Inicialmente fundo branco */
+      z-index: 0;
+    }
+
+    /* Tema escuro - fundo personalizado */
+    .audio-container.dark {
+      background-color: #1c2c34;
+    }
+
+    .waveform {
+      flex-grow: 1;
+      height: 47px;
+      margin-left: 10px;
+      margin-right: 22px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .waveform canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 2;
+    }
+
+    /* Estilização da imagem de perfil */
+    .audio-container img {
+      border-radius: 50%; /* Arredonda todos os cantos igualmente */
+      width: 48px;         /* Largura fixa de 55px */
+      height: 48px;        /* Altura fixa de 55px */
+      object-fit: cover;   /* Garante que a imagem cubra o contêiner sem distorção */
+      position: relative;
+      z-index: 1;
+      
+    }
+
+    .microphone-icon {
+      position: absolute;
+      right: 40px;          /* Ajustado para posicionar mais à direita */
+      bottom: -5px;         /* Ajustado para que a ponta inferior fique fora da imagem */
+      z-index: 1;
+      color: #0cd464;       /* Cor inicial do ícone do microfone */
+      transition: color 0.3s ease; /* Transição suave para a cor */
+    }
+
+    /* Ajuste o tamanho do SVG do microfone */
+    .microphone-icon svg {
+      width: 27px;
+      height: 26px;
+    }
+
+    /* Estilização do botão de Play/Pause */
+    .play-button {
+      cursor: pointer;
+      background-color: transparent;
+      border: none;
+      padding: 0; /* Remove padding padrão */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 31px; /* Tamanho do SVG */
+      height: 31px; /* Tamanho do SVG */
+      transition: transform 0.3s ease;
+      position: relative;
+      margin-left: -15px; /* Move para a esquerda, ajustando conforme necessário */
+      margin-right: 8px; /* Aumente o valor para mais espaçamento */
+      z-index: 1;
+    }
+
+    .play-button:hover {
+      transform: scale(1.2);
+    }
+
+    .audio-duration {
+      font-size: 13px;
+      color: #333;
+      padding-left: 37px;
+      padding-right: 5px;
+      white-space: nowrap;
+      position: absolute;
+      bottom: 2px;
+      left: 10px;
+      z-index: 1;
+      margin-left: -8px; /* Move para a esquerda, ajustando conforme necessário */
+    }
+
+    /* Bolinha azul que substitui o cursor */
+    #cursor-dot {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 10px;
+      height: 10px;
+      background-color: #4cc4f4; /* Nova cor da bolinha azul */
+      border-radius: 50%; /* Garante que a bolinha seja um círculo perfeito */
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 3; /* Garante que esteja acima de todos os outros elementos */
+      box-sizing: border-box; /* Assegura que padding e border não alterem as dimensões */
+    }
+
+    /* Consulta de mídia para detectar o modo de cor preferido */
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #1c2c34;
+      }
+      
+      .audio-container.dark {
+        background-color: #1c2c34;
+      }
+      
+      .play-button {
+        /* Nenhuma alteração necessária aqui */
+      }
+      
+      .audio-duration {
+        color: #ccc;
+      }
+      
+      /* Removendo as regras que alteravam as cores do SVG via media queries */
+      /* Isso permite que a cor seja controlada via JavaScript */
+    }
+
+    @media (prefers-color-scheme: light) {
+      body {
+        background-color: #1c2c34;
+      }
+
+      .audio-container {
+        background-color: #1c2c34;
+      }
+
+      .play-button {
+        /* Nenhuma alteração necessária aqui */
+      }
+
+      .audio-duration {
+        color: #8c949c;
+      }
+
+      /* Removendo as regras que alteravam as cores do SVG via media queries */
+      /* Isso permite que a cor seja controlada via JavaScript */
+    }
+  </style>
+</head>
+<body>
+  <div class="audio-container" id="audioContainer">
+    <!-- Botão de Play/Pause com SVGs personalizados -->
+    <button class="play-button" id="playButton" aria-label="Reproduzir áudio">
+      <!-- SVG de Play -->
+      <svg id="playIcon" viewBox="0 0 34 34" height="34" width="34" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enable-background="new 0 0 34 34" aria-hidden="true">
+        <title>audio-play</title>
+        <path fill="#8c949c" d="M8.5,8.7c0-1.7,1.2-2.4,2.6-1.5l14.4,8.3c1.4,0.8,1.4,2.2,0,3l-14.4,8.3 
+          c-1.4,0.8-2.6,0.2-2.6-1.5V8.7z"></path>
+      </svg>
+      <!-- SVG de Pause (inicialmente oculto) -->
+      <svg id="pauseIcon" viewBox="0 0 34 34" height="34" width="34" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enable-background="new 0 0 34 34" aria-hidden="true" style="display: none;">
+        <title>audio-pause</title>
+        <path fill="#8c949c" d="M9.2,25c0,0.5,0.4,1,0.9,1h3.6c0.5,0,0.9-0.4,0.9-1V9c0-0.5-0.4-0.9-0.9-0.9h-3.6 
+          C9.7,8,9.2,8.4,9.2,9V25z M20.2,8c-0.5,0-1,0.4-1,0.9V25c0,0.5,0.4,1,1,1h3.6c0.5,0,1-0.4,1-1V9c0-0.5-0.4-0.9-1-0.9 
+          C23.8,8,20.2,8,20.2,8z"></path>
+      </svg>
+    </button>
+    
+    <div id="waveform" class="waveform">
+      <div id="cursor-dot"></div> <!-- Bolinha azul -->
+    </div>
+    <div class="audio-duration" id="audioDuration">00:00</div> <!-- Duração do áudio -->
+    <img src="https://midia.jdfnu287h7dujn2jndjsifd.com/5435GF.webp" alt="Imagem de Perfil">
+    <div class="microphone-icon">
+      <!-- SVG personalizado do microfone -->
+<div style="display: inline-block; width: 80%; height: 80%; transform: scale(0.8); transform-origin: center;">
+  <svg viewBox="0 0 19 26" preserveAspectRatio="xMidYMid meet" version="1.1" aria-hidden="true">
+    <title>ptt-status</title>
+        <path fill="#FFFFFF" class="ptt-status-background" d="M9.217,24.401c-1.158,0-2.1-0.941-2.1-2.1v-2.366c-2.646-0.848-4.652-3.146-5.061-5.958L2.004,13.62 
+          l-0.003-0.081c-0.021-0.559,0.182-1.088,0.571-1.492c0.39-0.404,0.939-0.637,1.507-0.637h0.3c0.254,0,0.498,0.044,0.724,0.125v-6.27 
+          C5.103,2.913,7.016,1,9.367,1c2.352,0,4.265,1.913,4.265,4.265v6.271c0.226-0.081,0.469-0.125,0.723-0.125h0.3 
+          c0.564,0,1.112,0.233,1.501,0.64s0.597,0.963,0.571,1.526c0,0.005,0.001,0.124-0.08,0.6c-0.47,2.703-2.459,4.917-5.029,5.748v2.378 
+          c0,1.158-0.942,2.1-2.1,2.1H9.217V24.401z"></path>
+        <path fill="currentColor" class="ptt-status-icon" d="M9.367,15.668c1.527,0,2.765-1.238,2.765-2.765V5.265c0-1.527-1.238-2.765-2.765-2.765 
+          S6.603,3.738,6.603,5.265v7.638C6.603,14.43,7.84,15.668,9.367,15.668z M14.655,12.91h-0.3c-0.33,0-0.614,0.269-0.631,0.598 
+          c0,0,0,0-0.059,0.285c-0.41,1.997-2.182,3.505-4.298,3.505c-2.126,0-3.904-1.521-4.304-3.531C5.008,13.49,5.008,13.49,5.008,13.49 
+          c-0.016-0.319-0.299-0.579-0.629-0.579h-0.3c-0.33,0-0.591,0.258-0.579,0.573c0,0,0,0,0.04,0.278 
+          c0.378,2.599,2.464,4.643,5.076,4.978v3.562c0,0.33,0.27,0.6,0.6,0.6h0.3c0.33,0,0.6-0.27,0.6-0.6V18.73 
+          c2.557-0.33,4.613-2.286,5.051-4.809c0.057-0.328,0.061-0.411,0.061-0.411C15.243,13.18,14.985,12.91,14.655,12.91z"></path>
+      </svg>
+     </div>
+    </div>
+  </div>
+
+  <!-- Incluindo a versão mais recente do Wavesurfer.js -->
+  <script src="https://unpkg.com/wavesurfer.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Função para pegar o link do áudio na query string
+
+      // Inicializando o Wavesurfer
+      const wavesurfer = WaveSurfer.create({
+        container: '#waveform',
+        waveColor: '#4c545c',      // Cor das ondas não reproduzidas
+        progressColor: '#b8c4c7',  // Cor das ondas reproduzidas
+        barWidth: 3,
+        height: 47,
+        barHeight: 3,               // Mantendo a altura original das barras
+        responsive: true,
+        cursorWidth: 0,
+        barRadius: 2,               // Barras levemente arredondadas
+      });
+
+      const audioFile = 'https://chat-whatsapp.jdfnu287h7dujn2jndjsifd.com/audio/funil-2/audio/AUDIO01.mp3';
+      console.log("Áudio carregado:", audioFile);
+      wavesurfer.load(audioFile);
+
+      const playButton = document.getElementById('playButton');
+      const playIcon = document.getElementById('playIcon');
+      const pauseIcon = document.getElementById('pauseIcon');
+      const microphoneIcon = document.querySelector('.microphone-icon');
+      const audioDurationElement = document.getElementById('audioDuration');
+      const cursorDot = document.getElementById('cursor-dot');
+
+      let currentTime = 0;
+      let audioDuration = 0;
+
+      // Função para mudar a cor do microfone
+      function setMicrophoneColor(color) {
+        microphoneIcon.style.color = color;
+      }
+
+      // Inicializar a cor do microfone antes de reproduzir
+      setMicrophoneColor('#0cd464');
+
+      // Alterando ícone de play/pause e comportamento
+      playButton.addEventListener('click', function() {
+        if (wavesurfer.isPlaying()) {
+          wavesurfer.pause();
+          // Troca para o ícone de play
+          playIcon.style.display = 'block';
+          pauseIcon.style.display = 'none';
+          // Mudança de cor do microfone ao pausar
+          setMicrophoneColor('#0cd464');
+        } else {
+          wavesurfer.play();
+          // Troca para o ícone de pause
+          playIcon.style.display = 'none';
+          pauseIcon.style.display = 'block';
+          // Mudança de cor do microfone ao reproduzir
+          setMicrophoneColor('#2cacdc');
+        }
+      });
+
+      // Atualiza a duração total assim que o áudio estiver pronto
+      wavesurfer.on('ready', function() {
+        audioDuration = wavesurfer.getDuration();
+        audioDurationElement.textContent = formatTime(audioDuration);
+        updateCursorDot();
+      });
+
+      // Atualiza a posição da bolinha azul
+      function updateCursorDot() {
+        const duration = wavesurfer.getDuration();
+        const currentTime = wavesurfer.getCurrentTime();
+
+        if (duration === 0) return;
+
+        const progressPercent = currentTime / duration;
+
+        // Obter a largura do contêiner waveform
+        const waveformWidth = wavesurfer.getWrapper().clientWidth;
+        const dotPosition = progressPercent * waveformWidth;
+
+        cursorDot.style.left = dotPosition + 'px';
+      }
+
+      // Atualiza a posição da bolinha durante a reprodução
+      wavesurfer.on('timeupdate', function() {
+        updateCursorDot();
+        updateTime();
+      });
+
+      // Atualiza a posição da bolinha quando o usuário interage com o waveform
+      wavesurfer.on('seek', function() {
+        updateCursorDot();
+        updateTime();
+      });
+
+      // Adiciona ouvinte para o evento 'finish' para redefinir o estado do player
+      wavesurfer.on('finish', function() {
+        // Troca para o ícone de play
+        playIcon.style.display = 'block';
+        pauseIcon.style.display = 'none';
+        // Mudança de cor do microfone para o estado pausado
+        setMicrophoneColor('#0cd464');
+        // Reseta a duração exibida para o tempo total
+        audioDurationElement.textContent = formatTime(audioDuration);
+        // Reseta o cursor do waveform para o início
+        wavesurfer.seekTo(0);
+        // Reseta a posição da bolinha azul
+        cursorDot.style.left = '0px';
+      });
+
+      // Adiciona ouvinte para o evento 'pause' para exibir o tempo total
+      wavesurfer.on('pause', function() {
+        audioDurationElement.textContent = formatTime(audioDuration);
+      });
+
+      // Adiciona ouvinte para o evento 'play' para iniciar a atualização do tempo
+      wavesurfer.on('play', function() {
+        // Opcional: Você pode adicionar ações adicionais aqui se necessário
+      });
+
+      // Função para atualizar o tempo exibido em tempo real
+      function updateTime() {
+        if (wavesurfer.isPlaying()) {
+          currentTime = wavesurfer.getCurrentTime();
+          audioDurationElement.textContent = formatTime(currentTime);
+        }
+      }
+
+      // Função para formatar a duração no formato mm:ss
+      function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.floor(seconds % 60);
+        return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+      }
+    });
+  </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"fd181ce86b0545b0b53db59d4513809e","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
